@@ -185,7 +185,7 @@ export const StoreService = {
         licenseType: item.licenseType === 'extended' ? 'Extended License' : 'Single Application License',
         status: 'active',
         issuedAt: new Date().toISOString().substring(0, 10),
-        downloadUrl: '/downloads/GreedyMarkhor-v1.0-demo.apk',
+        downloadUrl: 'https://pivrxmedemxuqbwryutw.supabase.co/storage/v1/object/public/public-demos/GreedyMarkhor-v1.0-demo.apk',
         version: '1.2.0'
       });
     });

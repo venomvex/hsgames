@@ -13,7 +13,7 @@ export const DemoLaunchModal: React.FC<Props> = ({
   isOpen,
   onClose,
   gameTitle,
-  apkDownloadUrl = '/downloads/GreedyMarkhor-v1.0-demo.apk'
+  apkDownloadUrl = 'https://pivrxmedemxuqbwryutw.supabase.co/storage/v1/object/public/public-demos/GreedyMarkhor-v1.0-demo.apk'
 }) => {
   const [activeTab, setActiveTab] = useState<'browser' | 'apk' | 'emulator'>('browser');
 

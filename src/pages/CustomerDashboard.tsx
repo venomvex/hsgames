@@ -387,7 +387,7 @@ export const CustomerDashboard: React.FC<Props> = ({ navigate }) => {
                 Directly install on physical Android phones or emulators to verify native 60 FPS animations and sound.
               </p>
               <a
-                href="/downloads/GreedyMarkhor-v1.0-demo.apk"
+                href="https://pivrxmedemxuqbwryutw.supabase.co/storage/v1/object/public/public-demos/GreedyMarkhor-v1.0-demo.apk"
                 download
                 className="w-full py-2.5 rounded-xl bg-hsg-surface hover:bg-white/10 text-hsg-cyan font-bold text-xs border border-hsg-border transition flex items-center justify-center gap-2"
               >

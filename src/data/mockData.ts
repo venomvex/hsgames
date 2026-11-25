@@ -40,7 +40,7 @@ Designed from the ground up for seamless bottom-sheet embedding: the top 15% of 
     ],
     videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-arcade-video-game-machine-loop-42861-large.mp4',
     hasPlayableDemo: true,
-    demoApkUrl: '/downloads/GreedyMarkhor-v1.0-demo.apk',
+    demoApkUrl: 'https://pivrxmedemxuqbwryutw.supabase.co/storage/v1/object/public/public-demos/GreedyMarkhor-v1.0-demo.apk',
     tags: ['Kotlin', 'Jetpack Compose', 'Voice-Chat Game', 'Supabase', 'Multiplier Wheel', 'Provably Fair'],
     features: [
       '38-Second Continuous Loop: 30s betting phase, 4s smooth deceleration spin, 4s celebratory winner payout.',

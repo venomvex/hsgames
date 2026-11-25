@@ -1,24 +1,25 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
+# Dependencies & Logs
 node_modules
 dist
 dist-ssr
+*.log
+.npm
+
+# Secrets & Local Config
+.env
+.env.*
+!.env.example
 *.local
 
-# Editor directories and files
+# Binaries & Archives (Demo APK is hosted on Supabase CDN)
+*.apk
+*.zip
+*.tar.gz
+public/downloads/
+
+# Editor & OS
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+Thumbs.db

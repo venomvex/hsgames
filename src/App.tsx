@@ -101,7 +101,7 @@ export function App() {
           isOpen={demoModalOpen}
           onClose={() => setDemoModalOpen(false)}
           gameTitle={selectedDemoGame.title}
-          apkDownloadUrl={selectedDemoGame.demoApkUrl || '/downloads/GreedyMarkhor-v1.0-demo.apk'}
+          apkDownloadUrl={selectedDemoGame.demoApkUrl || 'https://pivrxmedemxuqbwryutw.supabase.co/storage/v1/object/public/public-demos/GreedyMarkhor-v1.0-demo.apk'}
         />
       )}
 
