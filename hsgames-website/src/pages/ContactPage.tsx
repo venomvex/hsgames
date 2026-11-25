@@ -46,17 +46,23 @@ export const ContactPage: React.FC = () => {
                 <Mail className="w-5 h-5 text-hsg-purple shrink-0 mt-0.5" />
                 <div>
                   <span className="text-hsg-muted block text-[10px] uppercase font-bold">Official Email</span>
-                  <a href={`mailto:${settings.contactEmail}`} className="text-white font-mono hover:text-hsg-cyan transition">
-                    {settings.contactEmail}
-                  </a>
+                  {settings.contactEmail ? (
+                    <a href={`mailto:${settings.contactEmail}`} className="text-white font-mono hover:text-hsg-cyan transition">
+                      {settings.contactEmail}
+                    </a>
+                  ) : (
+                    <span className="text-hsg-muted italic">Pending direct configuration (Submit form below)</span>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-hsg-surface border border-hsg-border/60">
                 <MessageSquare className="w-5 h-5 text-hsg-cyan shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-hsg-muted block text-[10px] uppercase font-bold">WhatsApp / Direct Inquiries</span>
-                  <span className="text-white font-medium">{settings.contactWhatsapp}</span>
+                  <span className="text-hsg-muted block text-[10px] uppercase font-bold">Direct Messaging / WhatsApp</span>
+                  <span className="text-white font-medium">
+                    {settings.contactWhatsapp || 'Available upon inquiry submission'}
+                  </span>
                 </div>
               </div>
             </div>

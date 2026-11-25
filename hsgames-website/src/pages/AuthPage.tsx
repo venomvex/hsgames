@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { User, Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
+import { User, Lock, Mail, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useStoreState } from '../services/store';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface Props {
   initialMode?: 'login' | 'register';
@@ -16,24 +17,102 @@ export const AuthPage: React.FC<Props> = ({ initialMode = 'login', navigate }) =
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleAuthSubmit = (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
+    setSuccessMessage('');
 
     if (mode === 'forgot') {
-      setSuccessMessage('Password reset link sent to your email address.');
+      if (isSupabaseConfigured && supabase) {
+        setLoading(true);
+        const { error } = await supabase.auth.resetPasswordForEmail(email);
+        setLoading(false);
+        if (error) {
+          setErrorMessage(error.message);
+          return;
+        }
+      }
+      setSuccessMessage('Password reset instructions sent to your email address.');
       setTimeout(() => setSuccessMessage(''), 4000);
       return;
     }
 
-    const isAdmin = email.toLowerCase().includes('admin');
+    if (isSupabaseConfigured && supabase) {
+      setLoading(true);
+      if (mode === 'register') {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: fullName, company_name: companyName }
+          }
+        });
+        setLoading(false);
+        if (error) {
+          setErrorMessage(error.message);
+          return;
+        }
+        if (data?.user) {
+          setUser({
+            id: data.user.id,
+            email: data.user.email || email,
+            fullName: fullName || split_email(email),
+            companyName: companyName,
+            role: 'customer', // strictly customer
+            createdAt: new Date().toISOString().substring(0, 10)
+          });
+          navigate('customer-dashboard');
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        setLoading(false);
+        if (error) {
+          setErrorMessage(error.message);
+          return;
+        }
+        if (data?.user) {
+          // Fetch verified role from public.profiles
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+
+          const userRole = profile?.role === 'admin' ? 'admin' : 'customer';
+          setUser({
+            id: data.user.id,
+            email: data.user.email || email,
+            fullName: profile?.full_name || fullName || split_email(email),
+            companyName: profile?.company_name || companyName,
+            role: userRole,
+            createdAt: profile?.created_at || new Date().toISOString().substring(0, 10)
+          });
+
+          if (userRole === 'admin') {
+            navigate('admin-dashboard');
+          } else {
+            navigate('customer-dashboard');
+          }
+        }
+      }
+      return;
+    }
+
+    // Local standalone offline mode (when Supabase credentials are not set)
+    const isAdmin = email.toLowerCase() === 'admin@hsgames.local';
     setUser({
       id: `usr-${Date.now()}`,
-      email: email || (isAdmin ? 'admin@hsgames.tech' : 'developer@voicechat.app'),
-      fullName: fullName || (isAdmin ? 'HSGames Administrator' : 'Muhammad Rashid'),
-      companyName: companyName || 'Voice Studio Ltd',
+      email: email,
+      fullName: fullName || split_email(email),
+      companyName: companyName,
       role: isAdmin ? 'admin' : 'customer',
-      createdAt: '2026-11-25'
+      createdAt: new Date().toISOString().substring(0, 10)
     });
 
     if (isAdmin) {
@@ -43,29 +122,7 @@ export const AuthPage: React.FC<Props> = ({ initialMode = 'login', navigate }) =
     }
   };
 
-  const handleFastDemoLogin = (role: 'admin' | 'customer') => {
-    if (role === 'admin') {
-      setUser({
-        id: 'usr-admin-demo',
-        email: 'admin@hsgames.tech',
-        fullName: 'HSGames Administrator',
-        companyName: 'HSGames Media Ltd',
-        role: 'admin',
-        createdAt: '2026-11-20'
-      });
-      navigate('admin-dashboard');
-    } else {
-      setUser({
-        id: 'usr-customer-demo',
-        email: 'developer@voicechat.app',
-        fullName: 'Muhammad Rashid',
-        companyName: 'Social Voice Chat Ltd',
-        role: 'customer',
-        createdAt: '2026-11-22'
-      });
-      navigate('customer-dashboard');
-    }
-  };
+  const split_email = (val: string) => val ? val.split('@')[0] : 'Client';
 
   return (
     <div className="max-w-md mx-auto px-4 py-16">
@@ -87,6 +144,13 @@ export const AuthPage: React.FC<Props> = ({ initialMode = 'login', navigate }) =
             {mode === 'forgot' && 'Enter your email to receive recovery instructions.'}
           </p>
         </div>
+
+        {errorMessage && (
+          <div className="bg-red-500/20 border border-red-500/40 text-red-300 p-3 rounded-xl text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
         {successMessage && (
           <div className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 p-3 rounded-xl text-xs text-center">
@@ -189,26 +253,48 @@ export const AuthPage: React.FC<Props> = ({ initialMode = 'login', navigate }) =
           )}
         </div>
 
-        {/* Instant One-Click Demo Role Login Shortcuts for Testing */}
-        <div className="bg-hsg-surface border border-hsg-border p-3 rounded-2xl text-[11px] space-y-2">
-          <span className="text-hsg-muted font-bold block text-center uppercase tracking-wider text-[10px]">
-            ⚡ Instant Testing Shortcuts:
-          </span>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => handleFastDemoLogin('customer')}
-              className="py-1.5 px-2 rounded-lg bg-hsg-card hover:bg-white/10 text-white border border-hsg-border text-center font-bold"
-            >
-              Login as Customer
-            </button>
-            <button
-              onClick={() => handleFastDemoLogin('admin')}
-              className="py-1.5 px-2 rounded-lg bg-hsg-purple/30 hover:bg-hsg-purple/50 text-hsg-purple border border-hsg-purple/40 text-center font-bold"
-            >
-              Login as Admin 🛡️
-            </button>
+        {/* Offline Evaluation Shortcuts (Strictly Hidden When Live Supabase is Configured) */}
+        {!isSupabaseConfigured && (
+          <div className="bg-hsg-surface border border-hsg-border p-3 rounded-2xl text-[11px] space-y-2">
+            <span className="text-hsg-muted font-bold block text-center uppercase tracking-wider text-[10px]">
+              ⚡ Local Simulation Mode (Supabase Disconnected):
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setUser({
+                    id: 'usr-eval-customer',
+                    email: 'client@evaluation.local',
+                    fullName: 'Evaluation Client',
+                    role: 'customer',
+                    createdAt: '2026-11-26'
+                  });
+                  navigate('customer-dashboard');
+                }}
+                className="py-1.5 px-2 rounded-lg bg-hsg-card hover:bg-white/10 text-white border border-hsg-border text-center font-bold"
+              >
+                Client Mode
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUser({
+                    id: 'usr-eval-admin',
+                    email: 'admin@hsgames.local',
+                    fullName: 'System Administrator',
+                    role: 'admin',
+                    createdAt: '2026-11-26'
+                  });
+                  navigate('admin-dashboard');
+                }}
+                className="py-1.5 px-2 rounded-lg bg-hsg-purple/30 hover:bg-hsg-purple/50 text-hsg-purple border border-hsg-purple/40 text-center font-bold"
+              >
+                Admin Mode 🛡️
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
     </div>

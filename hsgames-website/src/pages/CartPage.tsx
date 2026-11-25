@@ -236,77 +236,101 @@ export const CartPage: React.FC<Props> = ({ navigate }) => {
               </span>
 
               {paymentMethod.includes('Bank') && (
-                <>
-                  <div className="flex justify-between py-1 border-b border-hsg-border/40">
-                    <span className="text-hsg-muted">Account Title:</span>
-                    <span className="font-bold text-white">{settings.paymentBankTitle}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-hsg-border/40">
-                    <span className="text-hsg-muted">Bank Name:</span>
-                    <span className="font-bold text-white">{settings.paymentBankName}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-1">
-                    <span className="text-hsg-muted">IBAN:</span>
-                    <div className="flex items-center gap-1 font-mono text-white">
-                      <span>{settings.paymentBankIban}</span>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(settings.paymentBankIban, 'iban')}
-                        className="text-hsg-cyan hover:text-white"
-                      >
-                        {copiedKey === 'iban' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                      </button>
+                settings.paymentBankIban ? (
+                  <>
+                    <div className="flex justify-between py-1 border-b border-hsg-border/40">
+                      <span className="text-hsg-muted">Account Title:</span>
+                      <span className="font-bold text-white">{settings.paymentBankTitle}</span>
                     </div>
-                  </div>
-                </>
+                    <div className="flex justify-between py-1 border-b border-hsg-border/40">
+                      <span className="text-hsg-muted">Bank Name:</span>
+                      <span className="font-bold text-white">{settings.paymentBankName}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-1">
+                      <span className="text-hsg-muted">IBAN:</span>
+                      <div className="flex items-center gap-1 font-mono text-white">
+                        <span>{settings.paymentBankIban}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(settings.paymentBankIban, 'iban')}
+                          className="text-hsg-cyan hover:text-white"
+                        >
+                          {copiedKey === 'iban' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-[11px] text-hsg-muted italic">
+                    Bank coordinates will be provided directly upon order submission or once configured in the administrator dashboard.
+                  </p>
+                )
               )}
 
               {paymentMethod === 'EasyPaisa' && (
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-hsg-muted">EasyPaisa Account:</span>
-                  <div className="flex items-center gap-1 font-mono text-white font-bold">
-                    <span>{settings.paymentEasypaisaNumber}</span>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(settings.paymentEasypaisaNumber, 'ep')}
-                      className="text-hsg-cyan hover:text-white"
-                    >
-                      {copiedKey === 'ep' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
+                settings.paymentEasypaisaNumber ? (
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-hsg-muted">EasyPaisa Account:</span>
+                    <div className="flex items-center gap-1 font-mono text-white font-bold">
+                      <span>{settings.paymentEasypaisaNumber}</span>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(settings.paymentEasypaisaNumber, 'ep')}
+                        className="text-hsg-cyan hover:text-white"
+                      >
+                        {copiedKey === 'ep' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <p className="text-[11px] text-hsg-muted italic">
+                    EasyPaisa account details will be provided directly upon order submission or once configured in the administrator dashboard.
+                  </p>
+                )
               )}
 
               {paymentMethod === 'JazzCash' && (
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-hsg-muted">JazzCash Account:</span>
-                  <div className="flex items-center gap-1 font-mono text-white font-bold">
-                    <span>{settings.paymentJazzcashNumber}</span>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(settings.paymentJazzcashNumber, 'jc')}
-                      className="text-hsg-cyan hover:text-white"
-                    >
-                      {copiedKey === 'jc' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
+                settings.paymentJazzcashNumber ? (
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-hsg-muted">JazzCash Account:</span>
+                    <div className="flex items-center gap-1 font-mono text-white font-bold">
+                      <span>{settings.paymentJazzcashNumber}</span>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(settings.paymentJazzcashNumber, 'jc')}
+                        className="text-hsg-cyan hover:text-white"
+                      >
+                        {copiedKey === 'jc' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <p className="text-[11px] text-hsg-muted italic">
+                    JazzCash account details will be provided directly upon order submission or once configured in the administrator dashboard.
+                  </p>
+                )
               )}
 
               {paymentMethod.includes('USDT') && (
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-hsg-muted">USDT (TRC20):</span>
-                  <div className="flex items-center gap-1 font-mono text-white text-[11px] truncate max-w-[190px]">
-                    <span className="truncate">{settings.paymentUsdtAddress}</span>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(settings.paymentUsdtAddress, 'usdt')}
-                      className="text-hsg-cyan hover:text-white shrink-0"
-                    >
-                      {copiedKey === 'usdt' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
+                settings.paymentUsdtAddress ? (
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-hsg-muted">USDT (TRC20):</span>
+                    <div className="flex items-center gap-1 font-mono text-white text-[11px] truncate max-w-[190px]">
+                      <span className="truncate">{settings.paymentUsdtAddress}</span>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(settings.paymentUsdtAddress, 'usdt')}
+                        className="text-hsg-cyan hover:text-white shrink-0"
+                      >
+                        {copiedKey === 'usdt' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <p className="text-[11px] text-hsg-muted italic">
+                    USDT deposit address will be provided directly upon order submission or once configured in the administrator dashboard.
+                  </p>
+                )
               )}
             </div>
 

@@ -21,16 +21,16 @@ export interface WebsiteSettings {
 export const DEFAULT_SETTINGS: WebsiteSettings = {
   brandName: 'HSGames',
   tagline: 'Social Gaming Solutions',
-  contactEmail: 'contact@hsgames.tech',
-  contactWhatsapp: '+92 300 0000000',
-  paymentBankTitle: 'HSGames Solutions',
-  paymentBankName: 'Meezan Bank Ltd / HBL',
-  paymentBankIban: 'PK82MEZN0001020304050607',
-  paymentEasypaisaNumber: '0300-1234567',
-  paymentJazzcashNumber: '0300-7654321',
-  paymentUsdtAddress: 'TX78Fk9L4mQP9wK12vYz98R0aBcDeFgHiJ (TRC-20)',
+  contactEmail: '',
+  contactWhatsapp: '',
+  paymentBankTitle: '',
+  paymentBankName: '',
+  paymentBankIban: '',
+  paymentEasypaisaNumber: '',
+  paymentJazzcashNumber: '',
+  paymentUsdtAddress: '',
   heroHeadline: 'Power Your Social Gaming Experience.',
-  heroSubheadline: 'Premium native Android multiplayer games built for social voice-chat applications. Discover, test, and integrate powerful gaming experiences into your platform.'
+  heroSubheadline: 'Original native Android multiplayer game source codes, developed in Kotlin with Jetpack Compose for social voice-chat applications and live audio platforms.'
 };
 
 // Local storage keys
@@ -83,14 +83,7 @@ export const StoreService = {
   saveCart: (cart: OrderItem[]) => setStoredItem(STORAGE_KEYS.CART, cart),
 
   getCurrentUser: (): UserProfile | null => {
-    return getStoredItem(STORAGE_KEYS.USER, {
-      id: 'usr-admin-default',
-      email: 'admin@hsgames.tech',
-      fullName: 'HSGames Administrator',
-      companyName: 'HSGames Media Ltd',
-      role: 'admin',
-      createdAt: '2026-11-20'
-    });
+    return getStoredItem<UserProfile | null>(STORAGE_KEYS.USER, null);
   },
   saveCurrentUser: (user: UserProfile | null) => setStoredItem(STORAGE_KEYS.USER, user),
 
@@ -262,6 +255,10 @@ export function useStoreState() {
   const [cart, setCart] = useState(StoreService.getCart());
   const [user, setUser] = useState(StoreService.getCurrentUser());
   const [settings, setSettings] = useState(StoreService.getSettings());
+  const [dbStatus, setDbStatus] = useState<'connected' | 'fallback' | 'connecting'>(
+    isSupabaseConfigured ? 'connecting' : 'fallback'
+  );
+  const [dbError, setDbError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -283,6 +280,108 @@ export function useStoreState() {
     };
   }, []);
 
+  // Active Supabase synchronization when configured
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) {
+      setDbStatus('fallback');
+      return;
+    }
+
+    const syncRemoteData = async () => {
+      const client = supabase;
+      if (!client) return;
+
+      try {
+        // 1. Fetch published games directly from Supabase
+        const { data: remoteGames, error: gamesErr } = await client
+          .from('games')
+          .select('*')
+          .eq('status', 'published');
+
+        if (gamesErr) {
+          console.error('[Supabase Sync Notice] Games query returned:', gamesErr.message);
+          setDbError(`Supabase games error: ${gamesErr.message}`);
+          return;
+        }
+
+        if (remoteGames && remoteGames.length > 0) {
+          const mappedGames: GameItem[] = remoteGames.map((g: any) => ({
+            id: g.id,
+            title: g.title,
+            slug: g.slug,
+            category: g.category_name,
+            shortDescription: g.short_description,
+            description: g.description,
+            priceSingle: Number(g.price_single),
+            priceExtended: Number(g.price_extended),
+            rating: Number(g.rating),
+            reviewsCount: g.reviews_count,
+            downloadsCount: g.downloads_count,
+            featured: g.featured,
+            isNew: false,
+            status: g.status,
+            coverImage: g.cover_image,
+            screenshots: [g.cover_image],
+            videoUrl: g.video_url,
+            hasPlayableDemo: g.has_playable_demo,
+            demoApkUrl: g.demo_apk_url,
+            tags: ['Kotlin', 'Compose', g.category_name],
+            features: g.features || [],
+            techSpecs: g.tech_specs || {},
+            multiplayerDetails: 'Global 38-second synchronized round engine.',
+            integrationGuide: g.integration_guide || [],
+            version: g.version,
+            updatedAt: 'Live Supabase'
+          }));
+          StoreService.saveGames(mappedGames);
+        }
+
+        // 2. Fetch website settings from Supabase
+        const { data: remoteSettings, error: settingsErr } = await client
+          .from('website_settings')
+          .select('*');
+
+        if (!settingsErr && remoteSettings && remoteSettings.length > 0) {
+          const mergedSettings: any = { ...DEFAULT_SETTINGS };
+          remoteSettings.forEach((row: any) => {
+            mergedSettings[row.key] = row.value;
+          });
+          StoreService.saveSettings(mergedSettings);
+        }
+
+        // 3. Sync authentication state
+        const { data: sessionData } = await client.auth.getSession();
+        if (sessionData?.session?.user) {
+          const authUser = sessionData.session.user;
+          const { data: profile } = await client
+            .from('profiles')
+            .select('*')
+            .eq('id', authUser.id)
+            .single();
+
+          if (profile) {
+            StoreService.saveCurrentUser({
+              id: profile.id,
+              email: profile.email,
+              fullName: profile.full_name,
+              companyName: profile.company_name || '',
+              role: profile.role,
+              createdAt: profile.created_at
+            });
+          }
+        }
+
+        setDbStatus('connected');
+        setDbError(null);
+      } catch (err: any) {
+        console.error('[Supabase Sync Exception]:', err);
+        setDbError(err.message || 'Supabase sync failed');
+      }
+    };
+
+    syncRemoteData();
+  }, []);
+
   return {
     games,
     bundles,
@@ -292,6 +391,8 @@ export function useStoreState() {
     cart,
     user,
     settings,
+    dbStatus,
+    dbError,
     setGames: StoreService.saveGames,
     setBundles: StoreService.saveBundles,
     setOrders: StoreService.saveOrders,

@@ -1,12 +1,14 @@
 import React from 'react';
 import { ShieldCheck, Mail, MessageSquare } from 'lucide-react';
 import { CATEGORIES_LIST } from '../../data/mockData';
+import { useStoreState } from '../../services/store';
 
 interface Props {
   navigate: (route: string, param?: string) => void;
 }
 
 export const Footer: React.FC<Props> = ({ navigate }) => {
+  const { settings } = useStoreState();
   return (
     <footer className="bg-[#06080F] border-t border-hsg-border text-hsg-muted text-sm pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -105,14 +107,26 @@ export const Footer: React.FC<Props> = ({ navigate }) => {
                 Need a custom game, bespoke RPC migration, or exclusive license for your streaming application?
               </p>
               <div className="bg-hsg-card border border-hsg-border p-3 rounded-xl space-y-2">
-                <div className="flex items-center gap-2 text-white">
-                  <Mail className="w-3.5 h-3.5 text-hsg-purple" />
-                  <span className="font-mono text-[11px]">contact@hsgames.tech</span>
-                </div>
-                <div className="flex items-center gap-2 text-white">
-                  <MessageSquare className="w-3.5 h-3.5 text-hsg-cyan" />
-                  <span className="text-[11px]">WhatsApp: +92 300 0000000</span>
-                </div>
+                {settings.contactEmail ? (
+                  <div className="flex items-center gap-2 text-white">
+                    <Mail className="w-3.5 h-3.5 text-hsg-purple" />
+                    <span className="font-mono text-[11px]">{settings.contactEmail}</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => navigate('contact')}
+                    className="flex items-center gap-2 text-hsg-cyan hover:underline text-[11px]"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Contact Sales & Engineering</span>
+                  </button>
+                )}
+                {settings.contactWhatsapp && (
+                  <div className="flex items-center gap-2 text-white">
+                    <MessageSquare className="w-3.5 h-3.5 text-hsg-cyan" />
+                    <span className="text-[11px]">WhatsApp: {settings.contactWhatsapp}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -186,9 +186,67 @@ CREATE POLICY "Public can view published games" ON public.games FOR SELECT USING
 CREATE POLICY "Public can view bundles" ON public.bundles FOR SELECT USING (true);
 CREATE POLICY "Public can view website settings" ON public.website_settings FOR SELECT USING (true);
 
--- Customer Profiles: Users can read and update their own profile
+-- Customer Profiles: Users can read and update their own profile (name, company)
 CREATE POLICY "Users can view own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Security Hardening: Prevent customers from changing their own role to 'admin'
+CREATE OR REPLACE FUNCTION public.protect_profile_role()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.role IS DISTINCT FROM OLD.role THEN
+    IF NOT public.is_admin() THEN
+      RAISE EXCEPTION 'Unauthorized: Role elevation denied. Role can only be changed by an authorized administrator.';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_protect_profile_role ON public.profiles;
+CREATE TRIGGER trg_protect_profile_role
+BEFORE UPDATE ON public.profiles
+FOR EACH ROW EXECUTE FUNCTION public.protect_profile_role();
+
+-- Auto-provision customer profile upon Supabase Auth registration (Strictly 'customer' role)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    coalesce(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+    'customer'
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Secure Admin Bootstrap: Can only be run in Supabase SQL editor by the database owner
+CREATE OR REPLACE FUNCTION public.bootstrap_admin_account(target_email TEXT)
+RETURNS TEXT AS $$
+DECLARE
+  v_updated INT;
+BEGIN
+  UPDATE public.profiles
+  SET role = 'admin'
+  WHERE email = LOWER(TRIM(target_email));
+  
+  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  IF v_updated > 0 THEN
+    RETURN 'SUCCESS: Account ' || target_email || ' elevated to Administrator.';
+  ELSE
+    RETURN 'NOTICE: No registered user found with email ' || target_email || '. Sign up first, then run this function.';
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Orders: Customers can view their own orders; Admins can view/update all
 CREATE POLICY "Customers view own orders" ON public.orders FOR SELECT 

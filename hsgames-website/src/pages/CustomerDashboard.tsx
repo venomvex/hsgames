@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Package, Key, Download, LifeBuoy, FileText, Settings, User, Clock, CheckCircle2, AlertCircle, Copy, Check, MessageSquare, Plus } from 'lucide-react';
 import { useStoreState } from '../services/store';
 import { License, Order, SupportTicket } from '../types';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface Props {
   navigate: (route: string, param?: string) => void;
@@ -328,13 +329,24 @@ export const CustomerDashboard: React.FC<Props> = ({ navigate }) => {
                   Complete un-obfuscated Kotlin source code, Jetpack Compose UI components, SoundPool audio, and 05_greedy_markhor_game.sql PostgreSQL migration.
                 </p>
                 <button
-                  onClick={() => {
-                    alert('Generating time-limited signed URL from private Supabase storage bucket (valid for 15 minutes)...\\n\\nIn production, this streams the private zip directly via Supabase createSignedUrl() with ownership check.');
+                  onClick={async () => {
+                    if (isSupabaseConfigured && supabase) {
+                      const { data, error } = await supabase.storage
+                        .from('game-source-archives')
+                        .createSignedUrl('packages/GreedyMarkhor-v1.0-source.zip', 900); // 15-minute expiration
+                      if (error) {
+                        alert(`Download verification notice: ${error.message}\nEnsure your purchase has an approved license.`);
+                      } else if (data?.signedUrl) {
+                        window.location.href = data.signedUrl;
+                      }
+                    } else {
+                      alert('Private Storage Protection Active:\n\nIn production, this generates a secure 15-minute expiring signed URL (Supabase createSignedUrl) verifying active license key authorization.');
+                    }
                   }}
                   className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black font-extrabold text-xs shadow-lg transition flex items-center justify-center gap-2"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Generate Signed Source Link (.ZIP)</span>
+                  <span>Generate Signed Source Link (15m Expiry)</span>
                 </button>
               </div>
             ) : (

@@ -7,6 +7,7 @@ import {
 import { useStoreState } from '../services/store';
 import { GameItem, Order, License, SupportTicket, GameBundle } from '../types';
 import { CATEGORIES_LIST } from '../data/mockData';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 interface Props {
   navigate: (route: string, param?: string) => void;
@@ -122,8 +123,12 @@ export const AdminDashboard: React.FC<Props> = ({ navigate }) => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-black text-white">Administrator Command Center</h1>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold px-2 py-0.5 rounded-full uppercase">
-                Active System
+              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase border ${
+                isSupabaseConfigured
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                  : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+              }`}>
+                {isSupabaseConfigured ? '● Supabase PostgreSQL Live' : '○ Standalone Local DB'}
               </span>
             </div>
             <p className="text-xs text-hsg-muted mt-1">

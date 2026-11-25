@@ -292,13 +292,18 @@ export const GreedyMarkhorWebDemo: React.FC<Props> = ({ onClose, isEmbedded = fa
                 <Trophy className="w-3.5 h-3.5" />
                 <span>Round #{roundNumber}</span>
               </div>
-              <div className={`px-2.5 py-0.5 rounded-full font-black text-[11px] tracking-wider uppercase shadow-md ${
-                phase === 'BETTING' ? 'bg-amber-500 text-black animate-pulse' :
-                phase === 'SPINNING' ? 'bg-cyan-500 text-black' : 'bg-emerald-500 text-white'
+              <div className={`px-2.5 py-0.5 rounded-full font-black text-[11px] tracking-wider uppercase shadow-md transition-all ${
+                phase === 'BETTING'
+                  ? timer <= 5
+                    ? 'bg-red-500 text-white animate-pulse ring-2 ring-red-300'
+                    : 'bg-amber-500 text-black'
+                  : phase === 'SPINNING'
+                  ? 'bg-cyan-500 text-black'
+                  : 'bg-emerald-500 text-white'
               }`}>
-                {phase === 'BETTING' && `Betting: ${timer}s`}
-                {phase === 'SPINNING' && `Spinning: ${timer}s`}
-                {phase === 'SHOWING' && `Winner Reveal: ${timer}s`}
+                {phase === 'BETTING' && `Bet Time ${timer}s`}
+                {phase === 'SPINNING' && `Draw Time ${timer}s`}
+                {phase === 'SHOWING' && `Show Time ${timer}s`}
               </div>
             </div>
 

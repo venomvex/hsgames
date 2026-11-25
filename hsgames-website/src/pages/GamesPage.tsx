@@ -152,20 +152,26 @@ export const GamesPage: React.FC<Props> = ({ initialCategory = 'All Games', navi
           ))}
         </div>
       ) : (
-        <div className="text-center py-20 bg-hsg-card/50 border border-hsg-border rounded-3xl p-8">
-          <Gamepad2 className="w-12 h-12 text-hsg-muted mx-auto mb-3 opacity-40" />
-          <h4 className="text-base font-bold text-white mb-1">No games match your query</h4>
-          <p className="text-xs text-hsg-muted max-w-sm mx-auto mb-4">
-            Try adjusting your search terms or select another category from the 8 official marketplace categories.
+        <div className="text-center py-20 bg-hsg-card/50 border border-hsg-border rounded-3xl p-8 max-w-xl mx-auto space-y-3">
+          <Gamepad2 className="w-12 h-12 text-hsg-muted mx-auto mb-2 opacity-40" />
+          <h4 className="text-base font-bold text-white">
+            {selectedCategory !== 'All Games'
+              ? `No Published Games in "${selectedCategory}" Yet`
+              : 'No games match your query'}
+          </h4>
+          <p className="text-xs text-hsg-muted leading-relaxed">
+            {selectedCategory !== 'All Games'
+              ? `New native Android multiplayer titles for ${selectedCategory} are currently in development or undergoing security code review. Greedy Markhor is currently our live flagship product.`
+              : 'Try adjusting your search terms or select another category from the 8 official marketplace categories.'}
           </p>
           <button
             onClick={() => {
               setSearchQuery('');
               setSelectedCategory('All Games');
             }}
-            className="text-xs font-bold text-hsg-purple hover:underline"
+            className="px-5 py-2.5 rounded-xl bg-hsg-surface hover:bg-white/10 text-white font-bold text-xs border border-hsg-border transition"
           >
-            Reset Filters
+            {selectedCategory !== 'All Games' ? 'View All Available Games' : 'Reset Filters'}
           </button>
         </div>
       )}
