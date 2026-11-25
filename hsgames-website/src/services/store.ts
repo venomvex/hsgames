@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { GameItem, GameBundle, Order, License, SupportTicket, UserProfile, OrderItem } from '../types';
 import { INITIAL_GAMES, INITIAL_BUNDLES, INITIAL_ORDERS, INITIAL_LICENSES, INITIAL_TICKETS } from '../data/mockData';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export interface WebsiteSettings {
   brandName: string;
@@ -125,6 +126,44 @@ export const StoreService = {
     };
     StoreService.saveOrders([newOrder, ...orders]);
     StoreService.clearCart();
+
+    // Persist to Supabase if credentials configured
+    if (isSupabaseConfigured && supabase) {
+      supabase
+        .from('orders')
+        .insert({
+          order_number: orderNumber,
+          customer_email: orderData.customerEmail,
+          customer_name: orderData.customerName,
+          customer_whatsapp: orderData.customerWhatsapp,
+          total_amount: orderData.totalAmount,
+          payment_method: orderData.paymentMethod,
+          payment_reference: orderData.paymentReference,
+          payment_proof_url: orderData.paymentProofUrl,
+          status: 'under_review',
+          notes: orderData.notes
+        })
+        .select()
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Supabase order insert notice:', error.message);
+          } else if (data && data[0]) {
+            const dbOrderId = data[0].id;
+            const itemsToInsert = orderData.items.map(item => ({
+              order_id: dbOrderId,
+              product_type: 'game',
+              product_id: item.id.length === 36 ? item.id : '00000000-0000-0000-0000-000000000001',
+              product_title: item.title,
+              license_type: item.licenseType,
+              price: item.price
+            }));
+            supabase?.from('order_items').insert(itemsToInsert).then(({ error: itemsErr }) => {
+              if (itemsErr) console.error('Supabase order_items notice:', itemsErr.message);
+            });
+          }
+        });
+    }
+
     return newOrder;
   },
 
@@ -172,6 +211,34 @@ export const StoreService = {
 
     StoreService.saveOrders(updatedOrders);
     StoreService.saveLicenses([...createdLicenses, ...licenses]);
+
+    // Persist approval to Supabase if configured
+    if (isSupabaseConfigured && supabase) {
+      supabase
+        .from('orders')
+        .update({ status: 'paid', reviewed_at: new Date().toISOString() })
+        .eq('order_number', targetOrder.orderNumber)
+        .then(({ error }) => {
+          if (error) console.error('Supabase order status update notice:', error.message);
+        });
+
+      const licensesToInsert = createdLicenses.map(lic => ({
+        license_key: lic.licenseKey,
+        product_name: lic.productName,
+        product_id: lic.productId.length === 36 ? lic.productId : '00000000-0000-0000-0000-000000000001',
+        customer_email: lic.customerEmail,
+        order_number: lic.orderNumber,
+        license_type: lic.licenseType,
+        status: 'active',
+        issued_at: lic.issuedAt,
+        download_url: lic.downloadUrl,
+        version: lic.version
+      }));
+
+      supabase?.from('licenses').insert(licensesToInsert).then(({ error: licErr }) => {
+        if (licErr) console.error('Supabase licenses insert notice:', licErr.message);
+      });
+    }
   },
 
   rejectOrder: (orderId: string, reason?: string) => {

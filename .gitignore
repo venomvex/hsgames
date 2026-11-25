@@ -1,7 +1,26 @@
+# Dependencies
 node_modules/
 .npm
 *.log
+
+# Build output
+dist/
+dist-ssr/
+
+# Environment Secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# OS & Editor
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+
+# Private Archive Protection
+*.zip
+*.tar.gz
+*.7z
+private-source/

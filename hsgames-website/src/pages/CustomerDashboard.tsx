@@ -299,35 +299,68 @@ export const CustomerDashboard: React.FC<Props> = ({ navigate }) => {
       {/* 4. Downloads */}
       {activeTab === 'downloads' && (
         <div className="space-y-4">
-          <h3 className="text-lg font-bold text-white">Private Source Code & Demo Archives</h3>
-          <p className="text-xs text-hsg-muted">
-            Directly download the complete source code, UI components, sound effects, and pre-compiled demo builds.
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-white">Private Source Code & Demo Archives</h3>
+              <p className="text-xs text-hsg-muted">
+                Source code packages are encrypted and only accessible to verified buyers with an approved commercial license.
+              </p>
+            </div>
+            <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full font-bold">
+              RLS Protected • Private Storage
+            </span>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-hsg-card border border-hsg-border rounded-2xl p-5 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-hsg-purple/20 flex items-center justify-center text-hsg-purple">
-                  <Package className="w-5 h-5" />
+            {/* Source Code Archive Card */}
+            {myOrders.some(o => o.status === 'paid') ? (
+              <div className="bg-hsg-card border border-emerald-500/40 rounded-2xl p-5 space-y-3 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <Package className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-white">Greedy Markhor — Full Commercial Source</h4>
+                    <span className="text-[11px] text-emerald-400 font-semibold">License Verified • Ready for Download</span>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-bold text-sm text-white">Greedy Markhor — Complete Source Code</h4>
-                  <span className="text-[11px] text-hsg-muted">v1.2.0 • 100% Kotlin + Compose + SQL</span>
-                </div>
+                <p className="text-xs text-hsg-muted leading-relaxed">
+                  Complete un-obfuscated Kotlin source code, Jetpack Compose UI components, SoundPool audio, and 05_greedy_markhor_game.sql PostgreSQL migration.
+                </p>
+                <button
+                  onClick={() => {
+                    alert('Generating time-limited signed URL from private Supabase storage bucket (valid for 15 minutes)...\\n\\nIn production, this streams the private zip directly via Supabase createSignedUrl() with ownership check.');
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black font-extrabold text-xs shadow-lg transition flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Generate Signed Source Link (.ZIP)</span>
+                </button>
               </div>
-              <p className="text-xs text-hsg-muted leading-relaxed">
-                Contains full Android studio project, all 34 HD visual assets, sound effects, and Supabase database migration.
-              </p>
-              <a
-                href="/downloads/GreedyMarkhor-v1.0-demo.apk"
-                download
-                className="w-full py-2.5 rounded-xl bg-hsg-purple hover:bg-hsg-purpleDark text-white font-bold text-xs shadow-purple-glow transition flex items-center justify-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download Source Archive (.ZIP)</span>
-              </a>
-            </div>
+            ) : (
+              <div className="bg-hsg-card border border-hsg-border rounded-2xl p-5 space-y-3 opacity-60">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-hsg-card flex items-center justify-center text-hsg-muted">
+                    <Package className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-white">Greedy Markhor — Full Commercial Source</h4>
+                    <span className="text-[11px] text-amber-400 font-semibold">🔒 Locked — Awaiting Payment Approval</span>
+                  </div>
+                </div>
+                <p className="text-xs text-hsg-muted leading-relaxed">
+                  Source code archives remain private and encrypted until payment proof is verified by an administrator.
+                </p>
+                <button
+                  disabled
+                  className="w-full py-2.5 rounded-xl bg-hsg-surface text-hsg-muted border border-hsg-border font-bold text-xs cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <span>Locked (Pending Approval)</span>
+                </button>
+              </div>
+            )}
 
+            {/* Standalone Demo APK Card (Free Demo Build) */}
             <div className="bg-hsg-card border border-hsg-border rounded-2xl p-5 space-y-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-hsg-cyan/20 flex items-center justify-center text-hsg-cyan">
@@ -335,11 +368,11 @@ export const CustomerDashboard: React.FC<Props> = ({ navigate }) => {
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-white">Greedy Markhor — Standalone Demo APK</h4>
-                  <span className="text-[11px] text-hsg-muted">v1.0.0 • 38.6 MB • Pre-seeded 500k Coins</span>
+                  <span className="text-[11px] text-hsg-muted">v1.0.0 • 38.6 MB • Standalone Evaluation Build</span>
                 </div>
               </div>
               <p className="text-xs text-hsg-muted leading-relaxed">
-                Directly install on physical Android phones or test in emulators to verify native 60 FPS animation.
+                Directly install on physical Android phones or emulators to verify native 60 FPS animations and sound.
               </p>
               <a
                 href="/downloads/GreedyMarkhor-v1.0-demo.apk"
@@ -347,7 +380,7 @@ export const CustomerDashboard: React.FC<Props> = ({ navigate }) => {
                 className="w-full py-2.5 rounded-xl bg-hsg-surface hover:bg-white/10 text-hsg-cyan font-bold text-xs border border-hsg-border transition flex items-center justify-center gap-2"
               >
                 <Download className="w-4 h-4" />
-                <span>Download Signed Demo APK (38 MB)</span>
+                <span>Download Demo APK (38 MB)</span>
               </a>
             </div>
           </div>

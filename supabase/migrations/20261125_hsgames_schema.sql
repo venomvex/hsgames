@@ -194,8 +194,28 @@ CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING
 CREATE POLICY "Customers view own orders" ON public.orders FOR SELECT 
 USING (auth.uid() = customer_id OR customer_email = auth.jwt() ->> 'email');
 
+-- Security hardening: Customers cannot insert orders with status 'paid' directly
 CREATE POLICY "Customers insert own orders" ON public.orders FOR INSERT 
-WITH CHECK (true);
+WITH CHECK (status IN ('pending', 'under_review'));
+
+-- Order Items Policies: Customers can insert and view their own order items
+CREATE POLICY "Customers insert own order items" ON public.order_items FOR INSERT 
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.orders 
+    WHERE orders.id = order_items.order_id 
+    AND (orders.customer_id = auth.uid() OR orders.customer_email = auth.jwt() ->> 'email')
+  )
+);
+
+CREATE POLICY "Customers view own order items" ON public.order_items FOR SELECT 
+USING (
+  EXISTS (
+    SELECT 1 FROM public.orders 
+    WHERE orders.id = order_items.order_id 
+    AND (orders.customer_id = auth.uid() OR orders.customer_email = auth.jwt() ->> 'email')
+  )
+);
 
 -- Licenses: Customers view only their active issued licenses
 CREATE POLICY "Customers view own licenses" ON public.licenses FOR SELECT 
@@ -221,6 +241,34 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE POLICY "Admins full access to games" ON public.games FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins full access to orders" ON public.orders FOR ALL USING (public.is_admin());
+CREATE POLICY "Admins full access to order items" ON public.order_items FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins full access to licenses" ON public.licenses FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins full access to tickets" ON public.support_tickets FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins full access to settings" ON public.website_settings FOR ALL USING (public.is_admin());
+
+-- ====================================================================
+-- STORAGE BUCKETS & PRIVATE SOURCE ARCHIVE POLICIES
+-- ====================================================================
+
+-- 1. Create Private Storage Bucket for un-obfuscated Android source code
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('game-source-archives', 'game-source-archives', false)
+ON CONFLICT (id) DO UPDATE SET public = false;
+
+-- 2. Storage Object RLS: Admins have full access to upload source packages
+CREATE POLICY "Admins manage source archives" ON storage.objects
+FOR ALL USING (
+  bucket_id = 'game-source-archives' AND public.is_admin()
+);
+
+-- 3. Storage Object RLS: Only verified buyers with an active commercial license can download
+CREATE POLICY "Verified buyers download source archives" ON storage.objects
+FOR SELECT USING (
+  bucket_id = 'game-source-archives' AND (
+    public.is_admin() OR EXISTS (
+      SELECT 1 FROM public.licenses
+      WHERE licenses.status = 'active'
+      AND (licenses.customer_email = auth.jwt() ->> 'email' OR licenses.customer_id = auth.uid())
+    )
+  )
+);
