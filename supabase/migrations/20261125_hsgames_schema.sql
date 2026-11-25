@@ -192,16 +192,26 @@ CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING
 
 -- Security Hardening: Prevent customers from changing their own role to 'admin'
 CREATE OR REPLACE FUNCTION public.protect_profile_role()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
 BEGIN
   IF NEW.role IS DISTINCT FROM OLD.role THEN
+    -- Allow execution by database superusers or service_role in SQL Editor
+    IF current_user IN ('postgres', 'supabase_admin', 'service_role') THEN
+      RETURN NEW;
+    END IF;
+
+    -- Otherwise enforce that only authenticated administrators can change roles
     IF NOT public.is_admin() THEN
-      RAISE EXCEPTION 'Unauthorized: Role elevation denied. Role can only be changed by an authorized administrator.';
+      RAISE EXCEPTION 'Unauthorized: Role elevation denied. Role can only be modified by an authorized administrator.';
     END IF;
   END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS trg_protect_profile_role ON public.profiles;
 CREATE TRIGGER trg_protect_profile_role
@@ -210,7 +220,11 @@ FOR EACH ROW EXECUTE FUNCTION public.protect_profile_role();
 
 -- Auto-provision customer profile upon Supabase Auth registration (Strictly 'customer' role)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
 BEGIN
   INSERT INTO public.profiles (id, email, full_name, role)
   VALUES (
@@ -222,7 +236,7 @@ BEGIN
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
@@ -231,10 +245,19 @@ FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Secure Admin Bootstrap: Can only be run in Supabase SQL editor by the database owner
 CREATE OR REPLACE FUNCTION public.bootstrap_admin_account(target_email TEXT)
-RETURNS TEXT AS $$
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
 DECLARE
   v_updated INT;
 BEGIN
+  -- Strict caller verification: only superuser or service role can execute bootstrap
+  IF current_user NOT IN ('postgres', 'supabase_admin', 'service_role') THEN
+    RAISE EXCEPTION 'Access Denied: bootstrap_admin_account can only be executed by database superusers in the SQL Editor.';
+  END IF;
+
   UPDATE public.profiles
   SET role = 'admin'
   WHERE email = LOWER(TRIM(target_email));
@@ -246,7 +269,13 @@ BEGIN
     RETURN 'NOTICE: No registered user found with email ' || target_email || '. Sign up first, then run this function.';
   END IF;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
+
+-- REVOKE execute permissions from PUBLIC, anon, and authenticated to prevent PostgREST / RPC exposure
+REVOKE ALL ON FUNCTION public.bootstrap_admin_account(TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.bootstrap_admin_account(TEXT) FROM anon;
+REVOKE ALL ON FUNCTION public.bootstrap_admin_account(TEXT) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.bootstrap_admin_account(TEXT) TO postgres, service_role;
 
 -- Orders: Customers can view their own orders; Admins can view/update all
 CREATE POLICY "Customers view own orders" ON public.orders FOR SELECT 
@@ -286,16 +315,25 @@ USING (customer_email = auth.jwt() ->> 'email' OR auth.uid() = customer_id);
 CREATE POLICY "Customers create tickets" ON public.support_tickets FOR INSERT 
 WITH CHECK (true);
 
--- Admins: Full Access Policy (Checks role='admin' in profiles)
+-- Admins: Full Access Policy (Checks role='admin' in profiles or superuser context)
 CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS BOOLEAN AS $$
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
 BEGIN
+  -- Superusers and service_role in SQL Editor have full admin authority
+  IF current_user IN ('postgres', 'supabase_admin', 'service_role') THEN
+    RETURN true;
+  END IF;
+
   RETURN EXISTS (
     SELECT 1 FROM public.profiles 
     WHERE id = auth.uid() AND role = 'admin'
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 CREATE POLICY "Admins full access to games" ON public.games FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins full access to orders" ON public.orders FOR ALL USING (public.is_admin());
